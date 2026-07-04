@@ -14,7 +14,7 @@ Green gate per step: `uv sync --all-packages --dev` resolves, and once tests exi
 
 ## Steps
 - [x] 1. Skeleton + git init (workspace pyproject, pytest.ini, Makefile, targets/help.mk, package stubs). `uv sync` works.
-- [ ] 2. Docs: ROADMAP.md, CLAUDE.md, README.md, PROGRESS.md seeded.
+- [x] 2. Docs: ROADMAP.md, CLAUDE.md, README.md, PROGRESS.md seeded.
 - [ ] 3. core base: exit_codes, logging (ColorFormatter/setup_logging), types_, config + logging tests.
 - [ ] 4. core.db: schema + typed CRUD + migrations + tests.
 - [ ] 5. core.locking: lock-dir mutual exclusion + tests.
@@ -29,6 +29,7 @@ Green gate per step: `uv sync --all-packages --dev` resolves, and once tests exi
 - [ ] 14. Scaffold: dedup/README.md (future dir-comparator spec).
 
 ## RESUME HERE
-**Next: step 2 — Docs.**
+**Next: step 3 — core base (exit_codes, logging, types_, config + logging tests).**
 Verify current state: `cd ~/repo/flacifly && uv sync --all-packages --dev` (should resolve with no error).
 No tests exist yet, so `make test` is not meaningful until step 3.
+Reference to port: `manga_manager/packer/src/packer/cli.py` (`setup_logging` + `ColorFormatter`).
