@@ -17,8 +17,8 @@ Green gate per step: `uv sync --all-packages --dev` resolves, and once tests exi
 - [x] 2. Docs: ROADMAP.md, CLAUDE.md, README.md, PROGRESS.md seeded.
 - [x] 3. core base: exit_codes, logging (ColorFormatter/setup_logging), types_, config + logging tests.
 - [x] 4. core.db: schema + typed CRUD + migrations + tests.
-- [ ] 5. core.locking: lock-dir mutual exclusion + tests.
-- [ ] 6. fetcher shell: ytdlp_adapter, config, exit_codes, cli skeleton, main shim + mocked tests.
+- [x] 5. core.locking: lock-dir mutual exclusion + tests.
+- [x] 6. fetcher shell: ytdlp_adapter, config, exit_codes, cli skeleton, main shim + mocked tests.
 - [ ] 7. fetcher pipeline: transcode (FFmpeg), downloader orchestration + DB + threading + tests.
 - [ ] 8. tagger identify: identify + resolvers protocol + Heuristic/Embedded + tests.
 - [ ] 9. tagger tag: tags (mutagen) + tag subcommand + tests (generated FLAC).
@@ -29,9 +29,14 @@ Green gate per step: `uv sync --all-packages --dev` resolves, and once tests exi
 - [ ] 14. Scaffold: dedup/README.md (future dir-comparator spec).
 
 ## RESUME HERE
-**Next: step 5 — core.locking (filesystem lock-dir mutual exclusion + tests).**
-Verify current state: `cd ~/repo/flacifly && make test` (should pass: 16 tests, core logging + db).
-Add `core/src/core/locking.py`: a context manager acquiring a lock dir (e.g. `mkdir` atomicity) named
-per job (`fetch`/`tag`), raising a `LockError` if already held; releases on exit; stale-lock handling
-optional. Exit code `LOCKED = 5` already in `core.exit_codes`. Port intent from sosound-tools lock dirs.
-Add `core/tests/test_locking.py` (acquire/release, double-acquire raises, cleanup on exception).
+**Next: step 7 — fetcher pipeline (transcode.py FFmpeg → FLAC + wire into downloader + threading).**
+Verify current state: `cd ~/repo/flacifly && make test` (should pass: 39 tests).
+Add `fetcher/src/fetcher/transcode.py`: run `ffmpeg -y -i <orig> -c:a flac -compression_level N
+-map_metadata 0 <out>.flac`; subprocess runner injectable for tests (mock it). Idempotent (skip if
+FLAC exists & mtime ≥ source). Then in `downloader._process_target`, after `_record_download`, transcode
+the downloaded original, `db.set_flac_path` + `db.set_status(TRANSCODED)`; honour `cfg.keep_original`
+(delete source if False) and `cfg.dry_run`. Add `ThreadPoolExecutor(max_workers=cfg.nb_worker)` over
+entries within a target (default 1; first-failure aborts — mirror manga packer/worker._run_tasks).
+Tests: `fetcher/tests/test_transcode.py` (mock subprocess: correct args, idempotent skip, keep/delete),
+extend downloader tests for the transcode wiring + threaded path.
+NOTE: fetcher exit codes add `DOWNLOAD_ERROR = 7`. Timestamp passed via `now=` (cli uses datetime.now).

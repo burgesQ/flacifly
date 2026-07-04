@@ -8,16 +8,16 @@ At-a-glance backlog. `[x]` done · `[ ]` open. IDs group by area.
 - [x] C3  SQLite layer (`db.py`): `tracks` + `review_queue` + migrations, WAL, idempotent `init_db()`.
 - [x] C4  Dedup query (`track_exists`) across dirs; provenance columns.
 - [x] C5  Review-queue CRUD (`enqueue_review` / `pending_reviews` / `resolve_review`).
-- [ ] C6  Filesystem lock-dir mutual exclusion (`locking.py`), guards overlapping runs.
+- [x] C6  Filesystem lock-dir mutual exclusion (`locking.py`), guards overlapping runs.
 
 ## Fetcher — task 1 (F)
-- [ ] F1  `ytdlp_adapter`: wrap `yt_dlp.YoutubeDL`, best-audio, per-dir download-archive, cookies.
-- [ ] F2  Keep original best-audio file (no destructive extract).
+- [x] F1  `ytdlp_adapter`: wrap `yt_dlp.YoutubeDL`, best-audio, per-dir download-archive, cookies.
+- [x] F2  Keep original best-audio file (no destructive extract).
 - [ ] F3  `transcode.py`: FFmpeg → FLAC, configurable compression, idempotent.
-- [ ] F4  `downloader.py`: read `targets.conf`, per-target subdir, record tracks, dedup.
+- [x] F4  `downloader.py`: read `targets.conf`, per-target subdir, record tracks, dedup.
 - [ ] F5  `ThreadPoolExecutor` (`--nb-worker`, default 1); first-failure abort.
-- [ ] F6  `--mode {all,youtube,soundcloud,off}` (off = safe container default); `--url` one-off.
-- [ ] F7  `--dry-run` on all writes; `--flac-compression`, `--no-keep-original` flags.
+- [x] F6  `--mode {all,youtube,soundcloud,off}` (off = safe container default); `--url` one-off.
+- [x] F7  `--dry-run` on all writes; `--flac-compression`, `--no-keep-original` flags.
 
 ## Tagger — task 2 (T)
 - [ ] T1  `identify.py`: heuristic 'Artist - Title' split + noise stripping + confidence.

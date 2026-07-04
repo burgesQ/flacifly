@@ -86,3 +86,7 @@ python_version = "3.12"
 warn_return_any = true
 warn_unused_ignores = true
 no_implicit_optional = true
+
+[[tool.mypy.overrides]]
+module = ["yt_dlp", "yt_dlp.*", "mutagen", "mutagen.*"]
+ignore_missing_imports = true
