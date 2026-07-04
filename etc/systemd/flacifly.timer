@@ -1,0 +1,10 @@
+[Unit]
+Description=Run flacifly on a schedule
+
+[Timer]
+# Once a day; Persistent catches up if the Pi was off at the scheduled time.
+OnCalendar=daily
+Persistent=true
+
+[Install]
+WantedBy=timers.target

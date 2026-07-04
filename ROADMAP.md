@@ -29,11 +29,11 @@ At-a-glance backlog. `[x]` done · `[ ]` open. IDs group by area.
 - [ ] T7  `AcoustIDResolver` (chromaprint + MusicBrainz) via the plugin slot. *(future)*
 
 ## Container / CI / Ops (O)
-- [ ] O1  Dockerfile (`python:3.12-slim` + ffmpeg), non-root, volumes, safe default CMD.
+- [x] O1  Dockerfile (`python:3.12-slim` + ffmpeg), non-root, volumes, safe default CMD.
 - [ ] O2  `ci.yml`: lint (`|| true`) + strict mypy + test + coverage.
 - [ ] O3  `release.yml`: buildx multi-arch (amd64 + arm64) → GHCR.
-- [ ] O4  `etc/systemd/flacifly.{service,timer}` oneshot + timer for the Pi.
-- [ ] O5  `etc/targets.conf` + `etc/ytdlp.conf` examples.
+- [x] O4  `etc/systemd/flacifly.{service,timer}` oneshot + timer for the Pi.
+- [x] O5  `etc/targets.conf` + `etc/ytdlp.conf` examples.
 
 ## Future / out of scope for v1 (Z)
 - [ ] Z1  `dedup/`: parallel scan of legacy download dirs, group matching tracks, keep the best.

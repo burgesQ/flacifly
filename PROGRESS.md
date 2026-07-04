@@ -23,29 +23,27 @@ Green gate per step: `uv sync --all-packages --dev` resolves, and once tests exi
 - [x] 8. tagger identify: identify + resolvers protocol + Heuristic/Embedded + tests.
 - [x] 9. tagger tag: tags (mutagen) + tag subcommand + tests (generated FLAC).
 - [x] 10. tagger review: review interactive + review/dump/clear subcommands + tests.
-- [ ] 11. Configs + container: etc/ configs, systemd units, Dockerfile + local buildx smoke.
+- [x] 11. Configs + container: etc/ configs, systemd units, Dockerfile + local podman build smoke.
 - [ ] 12. CI: ci.yml + release.yml (multi-arch GHCR).
 - [ ] 13. Integration + polish: @pytest.mark.integration smoke tests, finalize README.
 - [ ] 14. Scaffold: dedup/README.md (future dir-comparator spec).
 
 ## RESUME HERE
-**Next: step 11 — configs + container (etc/ files, systemd units, Dockerfile).**
-Verify current state: `cd ~/repo/flacifly && make test` (should pass: 88 tests). BOTH packages COMPLETE.
-pytest gotcha (handled): unique test basenames, default prepend import mode (importlib mode breaks —
-repo-level `tagger/` dir shadows the installed package). Don't reintroduce `test_cli.py`.
-Build step 11:
-- `etc/targets.conf` (example `Name  URL` lines, mostly commented; port a couple from sosound-tools
-  dl.conf: a YouTube playlist + a SoundCloud URL, commented).
-- `etc/ytdlp.conf` (documented example of yt-dlp options — informational; the adapter builds opts in code,
-  but ship this as reference / for `--ytdlp-conf`).
-- `etc/systemd/flacifly.service` (Type=oneshot; ExecStart runs `docker run --rm ... flacifly-fetch ...`
-  then a second ExecStart for `flacifly-tag tag`) and `etc/systemd/flacifly.timer` (OnCalendar=daily,
-  Persistent=true, WantedBy=timers.target). Use %h or a documented path for volumes.
-- `Dockerfile`: `python:3.12-slim`, `apt-get install --no-install-recommends ffmpeg ca-certificates`,
-  copy repo, `pip install ./core ./fetcher ./tagger` (or `pip install .` won't work — root has no
-  package; install the three members). Non-root user, VOLUME for music + db + config, default
-  `CMD ["flacifly-fetch","--mode","off","--download-root","/music"]` (safe no-op).
-- `.dockerignore` already exists.
-Verify: `docker buildx build --platform linux/amd64 -t flacifly:test .` (buildx allowed per plan).
-No new tests strictly required; a build smoke is the gate. Then step 12 CI, 13 integration/polish, 14
-dedup scaffold.
+**Next: step 12 — CI (.github/workflows/ci.yml + release.yml multi-arch → GHCR).**
+Verify current state: `cd ~/repo/flacifly && make test` (88 tests). Container: `podman build -t
+flacifly:test .` succeeds (docker is NOT installed here — use podman locally; CI uses docker).
+Build step 12:
+- `.github/workflows/ci.yml`: adapt manga_manager's (astral-sh/setup-uv@v7 pinned 0.9.23,
+  actions/checkout@v6). lint job: ruff/black/isort with `|| true`, then strict
+  `uv run mypy -p core -p fetcher -p tagger` (can fail). test job: `uv sync --locked --all-packages
+  --dev` then `uv run pytest --cov=core --cov=fetcher --cov=tagger --cov-report=html . -q`, upload
+  htmlcov. NOTE: `uv.lock` must be committed for `--locked` (run `uv lock` and commit it — check it isn't
+  gitignored; .gitignore currently ignores *.db but NOT uv.lock, good).
+- `.github/workflows/release.yml`: docker/setup-qemu-action + docker/setup-buildx-action +
+  docker/login-action (GHCR, `${{ github.actor }}` / `secrets.GITHUB_TOKEN`) +
+  docker/build-push-action with `platforms: linux/amd64,linux/arm64`, push to
+  `ghcr.io/burgesq/flacifly`, tags on git tags + `latest` on main. `permissions: packages: write`.
+Then step 13 integration/polish (@pytest.mark.integration live smoke, finalize README), step 14
+dedup/README.md scaffold.
+KNOWN: `docker buildx build --platform linux/amd64,linux/arm64 .` (plan verification) needs docker+QEMU;
+locally only podman/amd64 was smoke-tested — arm64 is verified in CI on first tag push.

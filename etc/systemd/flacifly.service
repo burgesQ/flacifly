@@ -1,0 +1,26 @@
+[Unit]
+Description=flacifly — fetch best-audio, transcode to FLAC, then tag
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# Oneshot: fetch then tag, then the container exits — zero idle footprint on the Pi.
+# Adjust the image tag, host paths, and --mode to your setup.
+# Enable via the companion flacifly.timer (systemctl --user enable --now flacifly.timer)
+# or system-wide. %h is the invoking user's home.
+ExecStart=/usr/bin/docker run --rm \
+    -v %h/Music:/music \
+    -v %h/.local/share/flacifly:/data \
+    -v %h/flacifly/etc:/config:ro \
+    ghcr.io/burgesq/flacifly:latest \
+    flacifly-fetch --download-root /music --targets /config/targets.conf \
+                   --mode all --db /data/flacifly.db
+ExecStart=/usr/bin/docker run --rm \
+    -v %h/Music:/music \
+    -v %h/.local/share/flacifly:/data \
+    ghcr.io/burgesq/flacifly:latest \
+    flacifly-tag tag /music --db /data/flacifly.db
+
+[Install]
+WantedBy=multi-user.target
