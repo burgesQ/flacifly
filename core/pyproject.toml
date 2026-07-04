@@ -1,0 +1,18 @@
+[project]
+name = "core"
+version = "0.1.0"
+description = "Shared base for flacifly: logging, SQLite layer, config, locking."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[pytest]
+pythonpath = "src"
+console_output_style = "progress"

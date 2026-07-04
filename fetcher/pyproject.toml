@@ -1,0 +1,27 @@
+[project]
+name = "fetcher"
+version = "0.1.0"
+description = "Task 1: download best-quality audio (yt-dlp) and transcode to FLAC."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "core",
+    "yt-dlp>=2024.1.0",
+]
+
+[project.scripts]
+flacifly-fetch = "fetcher.main:main"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.uv.sources]
+core = { workspace = true }
+
+[pytest]
+pythonpath = "src"
+console_output_style = "progress"

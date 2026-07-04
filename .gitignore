@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtualenv / uv
+.venv/
+
+# Test / coverage / type caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Secrets / runtime state (never commit)
+*.cookies.txt
+cookies.txt
+*.db
+*.db-wal
+*.db-shm
+
+# Downloaded media (never commit)
+downloads/
+music/

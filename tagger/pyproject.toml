@@ -1,0 +1,27 @@
+[project]
+name = "tagger"
+version = "0.1.0"
+description = "Task 2: identify and write artist/track metadata to FLAC files."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "core",
+    "mutagen>=1.47.0",
+]
+
+[project.scripts]
+flacifly-tag = "tagger.main:main"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.uv.sources]
+core = { workspace = true }
+
+[pytest]
+pythonpath = "src"
+console_output_style = "progress"
