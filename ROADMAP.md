@@ -20,8 +20,8 @@ At-a-glance backlog. `[x]` done · `[ ]` open. IDs group by area.
 - [x] F7  `--dry-run` on all writes; `--flac-compression`, `--no-keep-original` flags.
 
 ## Tagger — task 2 (T)
-- [ ] T1  `identify.py`: heuristic 'Artist - Title' split + noise stripping + confidence.
-- [ ] T2  Resolver protocol + `HeuristicResolver` + `EmbeddedResolver`.
+- [x] T1  `identify.py`: heuristic 'Artist - Title' split + noise stripping + confidence.
+- [x] T2  Resolver protocol + `HeuristicResolver` + `EmbeddedResolver`.
 - [ ] T3  `tags.py`: read/write FLAC Vorbis comments via mutagen (`--dry-run` aware).
 - [ ] T4  `tag` subcommand: auto-tag confident, queue uncertain.
 - [ ] T5  `review` subcommand: interactive accept/edit/skip over the queue.
