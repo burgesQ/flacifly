@@ -1,20 +1,27 @@
-"""Download orchestration: resolve targets, dedup against the DB, record tracks.
+"""Download orchestration: resolve targets, dedup, download, transcode, record.
 
-Step-6 scope: sequential download + DB recording. Transcoding to FLAC and threaded
-workers are layered on in ``transcode.py`` / the ThreadPoolExecutor path (step 7).
+Per-target entries are processed with a ``ThreadPoolExecutor`` (``--nb-worker``,
+default 1 — FFmpeg is the CPU cost on a Pi). Individual download/transcode failures
+are counted (not fatal): reruns skip completed tracks via the DB dedup + yt-dlp
+download-archive, so a partial run is safe to repeat.
 """
 
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import logging
 from pathlib import Path
+from typing import Any
 
 from core import db
 from core.types_ import TrackRow, TrackStatus
 
 from .config import MODE_ALL, MODE_OFF, FetchConfig
 from .exit_codes import DOWNLOAD_ERROR, SUCCESS
+from .transcode import Runner
+from .transcode import _default_runner as _default_transcode_runner
+from .transcode import transcode_to_flac
 from .types_ import DownloadedEntry, EntryInfo, FetchTarget
 from .ytdlp_adapter import (
     YdlFactory,
@@ -64,7 +71,7 @@ def _resolve_targets(cfg: FetchConfig) -> list[FetchTarget]:
     return []
 
 
-def _embedded_json(entry: EntryInfo, info: dict) -> str:
+def _embedded_json(entry: EntryInfo, info: dict[str, Any]) -> str:
     """Serialise a small, stable subset of yt-dlp metadata for later tagging."""
     keep = ("uploader", "artist", "track", "album", "release_year", "upload_date")
     payload = {"title": entry.title, **{k: info.get(k) for k in keep if info.get(k)}}
@@ -73,9 +80,10 @@ def _embedded_json(entry: EntryInfo, info: dict) -> str:
 
 def _record_download(
     cfg: FetchConfig, target: FetchTarget, dl: DownloadedEntry, now: str
-) -> None:
+) -> int:
+    """Insert the downloaded track and return its DB id."""
     with db.connect(cfg.db_path) as conn:
-        db.add_track(
+        return db.add_track(
             conn,
             TrackRow(
                 source=dl.entry.source,
@@ -91,10 +99,69 @@ def _record_download(
         )
 
 
-def _process_target(
-    cfg: FetchConfig, target: FetchTarget, now: str, ydl_factory: YdlFactory
+def _transcode_and_finalize(
+    cfg: FetchConfig, track_id: int, dl: DownloadedEntry, runner: Runner
+) -> None:
+    """Transcode the downloaded original to FLAC and update the track's DB state."""
+    original = Path(dl.filepath)
+    flac = transcode_to_flac(
+        original, compression=cfg.flac_compression, runner=runner, dry_run=cfg.dry_run
+    )
+    if flac is None:
+        with db.connect(cfg.db_path) as conn:
+            db.set_status(conn, track_id, TrackStatus.FAILED)
+        return
+
+    with db.connect(cfg.db_path) as conn:
+        db.set_flac_path(conn, track_id, str(flac))
+        db.set_status(conn, track_id, TrackStatus.TRANSCODED)
+
+    if not cfg.keep_original and original.exists() and original != flac:
+        original.unlink()
+        with db.connect(cfg.db_path) as conn:
+            db.set_original_path(conn, track_id, None)
+        logger.debug("removed original (keep_original=False): %s", original)
+
+
+def _process_entry(
+    cfg: FetchConfig,
+    target: FetchTarget,
+    entry: EntryInfo,
+    now: str,
+    opts: dict[str, Any],
+    ydl_factory: YdlFactory,
+    runner: Runner,
 ) -> int:
-    """Probe a target, download not-yet-seen entries, record them. Returns error count."""
+    """Download + transcode one entry. Returns 1 on error, 0 on success/skip."""
+    with db.connect(cfg.db_path) as conn:
+        if db.track_exists(conn, entry.source, entry.source_id):
+            logger.debug("skip (already have): %s [%s]", entry.title, entry.source_id)
+            return 0
+
+    if cfg.dry_run:
+        logger.info("[DRY RUN] would download: %s", entry.title or entry.webpage_url)
+        return 0
+
+    dl_dir = cfg.download_root / target.name
+    dl_dir.mkdir(parents=True, exist_ok=True)
+    dl = download_entry(entry.webpage_url, opts, ydl_factory)
+    if dl is None:
+        return 1
+
+    track_id = _record_download(cfg, target, dl, now)
+    _transcode_and_finalize(cfg, track_id, dl, runner)
+    logger.info("done: %s", dl.entry.title or dl.filepath)
+    return 0
+
+
+def _process_target(
+    cfg: FetchConfig,
+    target: FetchTarget,
+    now: str,
+    ydl_factory: YdlFactory,
+    runner: Runner,
+) -> int:
+    """Probe a target and process its entries (threaded when nb_worker > 1)."""
     dl_dir = cfg.download_root / target.name
     opts = build_ydl_opts(
         dl_dir,
@@ -105,27 +172,13 @@ def _process_target(
     entries = probe(target.url, opts, ydl_factory)
     logger.info("target %s: %d ent/track(s)", target.name, len(entries))
 
-    errors = 0
-    for entry in entries:
-        with db.connect(cfg.db_path) as conn:
-            already = db.track_exists(conn, entry.source, entry.source_id)
-        if already:
-            logger.debug("skip (already have): %s [%s]", entry.title, entry.source_id)
-            continue
-        if cfg.dry_run:
-            logger.info(
-                "[DRY RUN] would download: %s", entry.title or entry.webpage_url
-            )
-            continue
+    def work(entry: EntryInfo) -> int:
+        return _process_entry(cfg, target, entry, now, opts, ydl_factory, runner)
 
-        dl_dir.mkdir(parents=True, exist_ok=True)
-        dl = download_entry(entry.webpage_url, opts, ydl_factory)
-        if dl is None:
-            errors += 1
-            continue
-        _record_download(cfg, target, dl, now)
-        logger.info("downloaded: %s", dl.entry.title or dl.filepath)
-    return errors
+    if cfg.nb_worker > 1 and not cfg.dry_run:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=cfg.nb_worker) as ex:
+            return sum(ex.map(work, entries))
+    return sum(work(entry) for entry in entries)
 
 
 def run(
@@ -133,6 +186,7 @@ def run(
     *,
     now: str,
     ydl_factory: YdlFactory = _default_ydl_factory,
+    runner: Runner = _default_transcode_runner,
 ) -> int:
     """Run the fetch pipeline. ``now`` is an ISO8601 timestamp supplied by the caller."""
     if cfg.mode == MODE_OFF:
@@ -154,7 +208,7 @@ def run(
                 "skip target %s (mode=%s, source=%s)", target.name, cfg.mode, source
             )
             continue
-        total_errors += _process_target(cfg, target, now, ydl_factory)
+        total_errors += _process_target(cfg, target, now, ydl_factory, runner)
 
     if total_errors:
         logger.error("%d download error(s)", total_errors)

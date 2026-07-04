@@ -29,13 +29,15 @@ class FakeYDL:
         return self.factory.dl_infos[url]
 
     def prepare_filename(self, info):
-        return f"/downloads/{info.get('title', 'x')}.{info.get('ext', 'opus')}"
+        base = self.factory.download_dir
+        return str(base / f"{info.get('title', 'x')}.{info.get('ext', 'opus')}")
 
 
 class FakeFactory:
-    def __init__(self, probe_info, dl_infos):
+    def __init__(self, probe_info, dl_infos, download_dir: Path):
         self.probe_info = probe_info
         self.dl_infos = dl_infos
+        self.download_dir = download_dir
         self.downloaded: list[str] = []
 
     def __call__(self, opts):
@@ -77,13 +79,26 @@ def test_url_source_and_mode_gating():
     assert dl._mode_allows(MODE_YOUTUBE, "soundcloud") is False
 
 
+# A fake FFmpeg runner that "creates" the FLAC and succeeds (never calls real ffmpeg).
+def _fake_runner(cmd):
+    Path(cmd[-1]).write_text("flac")
+    return 0
+
+
 def test_run_mode_off_is_noop(tmp_path: Path):
-    factory = FakeFactory({"entries": []}, {})
+    factory = FakeFactory({"entries": []}, {}, tmp_path)
     rc = dl.run(
-        _cfg(tmp_path, mode=MODE_OFF), now="2026-01-01T00:00:00Z", ydl_factory=factory
+        _cfg(tmp_path, mode=MODE_OFF),
+        now="2026-01-01T00:00:00Z",
+        ydl_factory=factory,
+        runner=_fake_runner,
     )
     assert rc == SUCCESS
     assert factory.downloaded == []
+
+
+def _leaf(id_, title, ext="opus"):
+    return {"id": id_, "title": title, "ext": ext, "extractor_key": "Youtube"}
 
 
 def test_run_dedup_skips_known_and_downloads_new(tmp_path: Path):
@@ -106,24 +121,79 @@ def test_run_dedup_skips_known_and_downloads_new(tmp_path: Path):
             {"id": "2", "title": "New - Track", "url": "wurl2", "ie_key": "Youtube"},
         ]
     }
-    dl_infos = {
-        "wurl2": {
-            "id": "2",
-            "title": "New - Track",
-            "ext": "opus",
-            "extractor_key": "Youtube",
-        }
-    }
-    factory = FakeFactory(probe_info, dl_infos)
+    factory = FakeFactory(
+        probe_info, {"wurl2": _leaf("2", "New - Track")}, tmp_path / "dl" / "_url"
+    )
 
-    rc = dl.run(cfg, now="2026-07-04T00:00:00Z", ydl_factory=factory)
+    rc = dl.run(
+        cfg, now="2026-07-04T00:00:00Z", ydl_factory=factory, runner=_fake_runner
+    )
     assert rc == SUCCESS
     # Only the not-yet-seen entry was downloaded.
     assert factory.downloaded == ["wurl2"]
     with db.connect(cfg.db_path) as conn:
         assert db.track_exists(conn, "youtube", "2")
+        row = conn.execute(
+            "SELECT status, flac_path FROM tracks WHERE source_id = '2'"
+        ).fetchone()
         count = conn.execute("SELECT COUNT(*) AS c FROM tracks").fetchone()["c"]
     assert count == 2
+    assert row["status"] == "transcoded"
+    assert row["flac_path"].endswith(".flac")
+
+
+def test_run_deletes_original_when_not_keep(tmp_path: Path):
+    cfg = _cfg(tmp_path, keep_original=False)
+    # The fake download reports a real file so the delete path can run.
+    original = tmp_path / "dl" / "_url" / "Song - Title.opus"
+    original.parent.mkdir(parents=True)
+    original.write_text("audio")
+
+    probe_info = {
+        "entries": [
+            {"id": "5", "title": "Song - Title", "url": "w5", "ie_key": "Youtube"}
+        ]
+    }
+
+    class FileFactory(FakeFactory):
+        def __init__(self):
+            super().__init__(
+                probe_info, {"w5": _leaf("5", "Song - Title")}, original.parent
+            )
+
+        # Override prepare_filename via the leaf's requested_downloads path.
+        def __call__(self, opts):
+            ydl = FakeYDL(self, opts)
+            self.dl_infos["w5"]["requested_downloads"] = [{"filepath": str(original)}]
+            return ydl
+
+    rc = dl.run(cfg, now="now", ydl_factory=FileFactory(), runner=_fake_runner)
+    assert rc == SUCCESS
+    assert not original.exists()  # deleted
+    with db.connect(cfg.db_path) as conn:
+        row = conn.execute(
+            "SELECT original_path, flac_path FROM tracks WHERE source_id = '5'"
+        ).fetchone()
+    assert row["original_path"] is None
+    assert row["flac_path"].endswith(".flac")
+
+
+def test_run_threaded_processes_all_entries(tmp_path: Path):
+    cfg = _cfg(tmp_path, nb_worker=4)
+    probe_info = {
+        "entries": [
+            {"id": str(i), "title": f"T{i}", "url": f"w{i}", "ie_key": "Youtube"}
+            for i in range(5)
+        ]
+    }
+    dl_infos = {f"w{i}": _leaf(str(i), f"T{i}") for i in range(5)}
+    factory = FakeFactory(probe_info, dl_infos, tmp_path / "dl" / "_url")
+    rc = dl.run(cfg, now="now", ydl_factory=factory, runner=_fake_runner)
+    assert rc == SUCCESS
+    assert sorted(factory.downloaded) == [f"w{i}" for i in range(5)]
+    with db.connect(cfg.db_path) as conn:
+        count = conn.execute("SELECT COUNT(*) AS c FROM tracks").fetchone()["c"]
+    assert count == 5
 
 
 def test_run_dry_run_downloads_nothing(tmp_path: Path):
@@ -131,7 +201,7 @@ def test_run_dry_run_downloads_nothing(tmp_path: Path):
     probe_info = {
         "entries": [{"id": "9", "title": "X", "url": "w9", "ie_key": "Youtube"}]
     }
-    factory = FakeFactory(probe_info, {})
+    factory = FakeFactory(probe_info, {}, tmp_path / "dl" / "_url")
     rc = dl.run(cfg, now="2026-07-04T00:00:00Z", ydl_factory=factory)
     assert rc == SUCCESS
     assert factory.downloaded == []

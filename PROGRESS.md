@@ -19,7 +19,7 @@ Green gate per step: `uv sync --all-packages --dev` resolves, and once tests exi
 - [x] 4. core.db: schema + typed CRUD + migrations + tests.
 - [x] 5. core.locking: lock-dir mutual exclusion + tests.
 - [x] 6. fetcher shell: ytdlp_adapter, config, exit_codes, cli skeleton, main shim + mocked tests.
-- [ ] 7. fetcher pipeline: transcode (FFmpeg), downloader orchestration + DB + threading + tests.
+- [x] 7. fetcher pipeline: transcode (FFmpeg), downloader orchestration + DB + threading + tests.
 - [ ] 8. tagger identify: identify + resolvers protocol + Heuristic/Embedded + tests.
 - [ ] 9. tagger tag: tags (mutagen) + tag subcommand + tests (generated FLAC).
 - [ ] 10. tagger review: review interactive + review/dump/clear subcommands + tests.
@@ -29,14 +29,19 @@ Green gate per step: `uv sync --all-packages --dev` resolves, and once tests exi
 - [ ] 14. Scaffold: dedup/README.md (future dir-comparator spec).
 
 ## RESUME HERE
-**Next: step 7 — fetcher pipeline (transcode.py FFmpeg → FLAC + wire into downloader + threading).**
-Verify current state: `cd ~/repo/flacifly && make test` (should pass: 39 tests).
-Add `fetcher/src/fetcher/transcode.py`: run `ffmpeg -y -i <orig> -c:a flac -compression_level N
--map_metadata 0 <out>.flac`; subprocess runner injectable for tests (mock it). Idempotent (skip if
-FLAC exists & mtime ≥ source). Then in `downloader._process_target`, after `_record_download`, transcode
-the downloaded original, `db.set_flac_path` + `db.set_status(TRANSCODED)`; honour `cfg.keep_original`
-(delete source if False) and `cfg.dry_run`. Add `ThreadPoolExecutor(max_workers=cfg.nb_worker)` over
-entries within a target (default 1; first-failure aborts — mirror manga packer/worker._run_tasks).
-Tests: `fetcher/tests/test_transcode.py` (mock subprocess: correct args, idempotent skip, keep/delete),
-extend downloader tests for the transcode wiring + threaded path.
-NOTE: fetcher exit codes add `DOWNLOAD_ERROR = 7`. Timestamp passed via `now=` (cli uses datetime.now).
+**Next: step 8 — tagger identify (heuristic + resolvers protocol + tests).**
+Verify current state: `cd ~/repo/flacifly && make test` (should pass: 47 tests). fetcher is COMPLETE.
+Now build the tagger package (task 2). Step 8 scope (no file I/O yet):
+- `tagger/src/tagger/types_.py`: `Guess(artist, title, date, confidence)`, `TrackContext(raw_title,
+  embedded, filepath)`.
+- `tagger/src/tagger/identify.py`: normalise raw title (strip `[Official Video]`, `(HD)`, `feat.` etc.),
+  split on `" - "` / `" – "` / `" — "` → (artist, title); confidence from split cleanliness + agreement
+  with embedded fields (uploader/artist/track). Centralised regexes (NAMED_PATTERNS style).
+- `tagger/src/tagger/resolvers/__init__.py`: `Resolver` Protocol (`resolve(ctx) -> Guess | None`);
+  `HeuristicResolver`, `EmbeddedResolver`. (AcoustID slot reserved — no dep.)
+- `tagger/src/tagger/config.py`: `TagConfig(BaseConfig)` with `path`, `confidence_threshold=0.8`.
+- `tagger/src/tagger/exit_codes.py` (re-export core; add TAG_ERROR if needed).
+Tests: `tagger/tests/test_identify.py` (splits, noise stripping, confidence ordering, resolver combine).
+Then step 9 adds `tags.py` (mutagen) + `tag` subcommand; step 10 adds `review` interactive + subcommands.
+The `embedded_json` written by fetcher (keys: title, uploader, artist, track, album, release_year,
+upload_date) is the EmbeddedResolver's input. Read a track's embedded_json from `core.db` in step 9.

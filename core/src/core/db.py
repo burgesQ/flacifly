@@ -154,6 +154,15 @@ def set_flac_path(conn: sqlite3.Connection, track_id: int, flac_path: str) -> No
     conn.execute("UPDATE tracks SET flac_path = ? WHERE id = ?", (flac_path, track_id))
 
 
+def set_original_path(
+    conn: sqlite3.Connection, track_id: int, original_path: Optional[str]
+) -> None:
+    """Update (or clear) the lossy source path — e.g. after deleting the original."""
+    conn.execute(
+        "UPDATE tracks SET original_path = ? WHERE id = ?", (original_path, track_id)
+    )
+
+
 # ---------------------------------------------------------------------------
 # review_queue
 # ---------------------------------------------------------------------------

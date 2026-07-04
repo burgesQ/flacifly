@@ -13,9 +13,9 @@ At-a-glance backlog. `[x]` done · `[ ]` open. IDs group by area.
 ## Fetcher — task 1 (F)
 - [x] F1  `ytdlp_adapter`: wrap `yt_dlp.YoutubeDL`, best-audio, per-dir download-archive, cookies.
 - [x] F2  Keep original best-audio file (no destructive extract).
-- [ ] F3  `transcode.py`: FFmpeg → FLAC, configurable compression, idempotent.
+- [x] F3  `transcode.py`: FFmpeg → FLAC, configurable compression, idempotent.
 - [x] F4  `downloader.py`: read `targets.conf`, per-target subdir, record tracks, dedup.
-- [ ] F5  `ThreadPoolExecutor` (`--nb-worker`, default 1); first-failure abort.
+- [x] F5  `ThreadPoolExecutor` (`--nb-worker`, default 1); per-entry error counting.
 - [x] F6  `--mode {all,youtube,soundcloud,off}` (off = safe container default); `--url` one-off.
 - [x] F7  `--dry-run` on all writes; `--flac-compression`, `--no-keep-original` flags.
 
