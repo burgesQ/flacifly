@@ -39,12 +39,34 @@ $ make type-check    # strict mypy
 $ make help          # list targets
 ```
 
-## Usage (once implemented)
+## Usage
 
 ```console
+# Task 1 — download best audio + transcode to FLAC (keeps the original)
 $ flacifly-fetch --download-root ~/Music --targets etc/targets.conf --mode youtube
-$ flacifly-tag tag --path ~/Music
-$ flacifly-tag review        # walk uncertain tracks interactively
+$ flacifly-fetch --download-root ~/Music --url "<a single URL>" --mode all   # one-off
+
+# Task 2 — identify + write tags; uncertain tracks go to the review queue
+$ flacifly-tag tag ~/Music
+$ flacifly-tag review ~/Music        # walk uncertain tracks interactively
+$ flacifly-tag dump ~/Music          # show current tags
 ```
+
+`--mode off` (the default, and the container's default CMD) is a safe no-op. Add
+`--dry-run` to any write command to preview without touching files. The shared SQLite DB
+(default `~/.local/share/flacifly/flacifly.db`, override with `--db`) handles dedup and
+the review queue across runs.
+
+### On a Raspberry Pi (container + systemd timer)
+
+```console
+$ podman build -t flacifly .            # or docker; CI publishes multi-arch to GHCR
+$ cp etc/systemd/flacifly.{service,timer} ~/.config/systemd/user/
+$ systemctl --user enable --now flacifly.timer
+```
+
+The service is `Type=oneshot` (fetch then tag, then exit) — nothing runs between
+scheduled runs. Tests: `make test` (unit); `uv run pytest -m integration` runs the
+ffmpeg/live smoke tests (the live download needs `FLACIFLY_INTEGRATION=1`).
 
 See `ROADMAP.md` for status and `CLAUDE.md` for conventions.

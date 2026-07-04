@@ -25,20 +25,17 @@ Green gate per step: `uv sync --all-packages --dev` resolves, and once tests exi
 - [x] 10. tagger review: review interactive + review/dump/clear subcommands + tests.
 - [x] 11. Configs + container: etc/ configs, systemd units, Dockerfile + local podman build smoke.
 - [x] 12. CI: ci.yml + release.yml (multi-arch GHCR).
-- [ ] 13. Integration + polish: @pytest.mark.integration smoke tests, finalize README.
+- [x] 13. Integration + polish: @pytest.mark.integration smoke tests, finalize README.
 - [ ] 14. Scaffold: dedup/README.md (future dir-comparator spec).
 
 ## RESUME HERE
-**Next: step 13 — integration tests + polish.**
-Verify current state: `cd ~/repo/flacifly && make test` (88 tests) + `uv sync --locked` OK.
-Build step 13:
-- Add a few `@pytest.mark.integration` tests (opt-in; excluded from default run via `-m "not
-  integration"`? currently they'd run — guard them so they SKIP without network/ffmpeg, or mark and let
-  CI skip). Suggested: a fetch smoke that, IF network+ffmpeg available, downloads one very short public
-  YouTube URL to a tmp dir and asserts a FLAC + original exist + DB row. Use pytest.importorskip / a
-  shutil.which('ffmpeg') skip guard so it never fails in CI without ffmpeg.
-- Consider adding `-m "not integration"` note to README / Makefile `test` (keep default `make test` fast).
-- Finalize README usage section (already drafted) — verify the example commands match the real CLI flags.
-Then step 14: `dedup/README.md` scaffold (future dir-comparator spec) — the last step.
-NOTE (arm64): multi-arch build is verified in CI (release.yml) on first push to main / tag; locally only
-podman/amd64 was smoke-tested (docker+QEMU not installed here).
+**Next: step 14 — dedup/ scaffold (FINAL step).**
+Verify current state: `cd ~/repo/flacifly && make test` (89 passed, 1 skipped — the live fetch is
+gated by FLACIFLY_INTEGRATION=1; the real-ffmpeg transcode test runs when ffmpeg is present).
+Build step 14 (docs-only scaffold, no code, no new tests):
+- `dedup/README.md`: spec for the future parallel dir-comparator (out of scope for v1). Describe the job:
+  scan the user's ~4-5 legacy download dirs in parallel, group matching tracks (normalized title /
+  fingerprint), keep the "best" (bitrate/format/size), record uncertain matches in `core.db` for
+  `flacifly-tag review`. Reference ROADMAP Z1. Note it will become a 4th workspace member later.
+After step 14: project COMPLETE. Optionally run full `make lint && make type-check && make test` and do a
+final `podman build` smoke. All 14 build steps done.
