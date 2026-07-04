@@ -5,9 +5,9 @@ At-a-glance backlog. `[x]` done · `[ ]` open. IDs group by area.
 ## Core (C)
 - [x] C1  Shared coloured logging (`ColorFormatter` / `setup_logging`) in `core`.
 - [x] C2  Base `Config` dataclass + shared `types_` / `exit_codes`.
-- [ ] C3  SQLite layer (`db.py`): `tracks` + `review_queue` + migrations, WAL, idempotent `init_db()`.
-- [ ] C4  Dedup query (`track_exists`) across dirs; provenance columns.
-- [ ] C5  Review-queue CRUD (`enqueue_review` / `pending_reviews` / `resolve_review`).
+- [x] C3  SQLite layer (`db.py`): `tracks` + `review_queue` + migrations, WAL, idempotent `init_db()`.
+- [x] C4  Dedup query (`track_exists`) across dirs; provenance columns.
+- [x] C5  Review-queue CRUD (`enqueue_review` / `pending_reviews` / `resolve_review`).
 - [ ] C6  Filesystem lock-dir mutual exclusion (`locking.py`), guards overlapping runs.
 
 ## Fetcher — task 1 (F)
