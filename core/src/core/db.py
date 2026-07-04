@@ -144,6 +144,15 @@ def get_track(conn: sqlite3.Connection, track_id: int) -> Optional[TrackRow]:
     return _to_track_row(r) if r else None
 
 
+def get_track_by_flac_path(
+    conn: sqlite3.Connection, flac_path: str
+) -> Optional[TrackRow]:
+    """Return the track whose ``flac_path`` matches, or None."""
+    cur = conn.execute("SELECT * FROM tracks WHERE flac_path = ?", (flac_path,))
+    r = cur.fetchone()
+    return _to_track_row(r) if r else None
+
+
 def set_status(conn: sqlite3.Connection, track_id: int, status: str) -> None:
     """Update a track's ``status``."""
     conn.execute("UPDATE tracks SET status = ? WHERE id = ?", (status, track_id))

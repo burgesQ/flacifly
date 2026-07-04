@@ -22,8 +22,8 @@ At-a-glance backlog. `[x]` done · `[ ]` open. IDs group by area.
 ## Tagger — task 2 (T)
 - [x] T1  `identify.py`: heuristic 'Artist - Title' split + noise stripping + confidence.
 - [x] T2  Resolver protocol + `HeuristicResolver` + `EmbeddedResolver`.
-- [ ] T3  `tags.py`: read/write FLAC Vorbis comments via mutagen (`--dry-run` aware).
-- [ ] T4  `tag` subcommand: auto-tag confident, queue uncertain.
+- [x] T3  `tags.py`: read/write FLAC Vorbis comments via mutagen (`--dry-run` aware).
+- [x] T4  `tag` subcommand: auto-tag confident, queue uncertain.
 - [ ] T5  `review` subcommand: interactive accept/edit/skip over the queue.
 - [ ] T6  `dump` / `clear` subcommands.
 - [ ] T7  `AcoustIDResolver` (chromaprint + MusicBrainz) via the plugin slot. *(future)*

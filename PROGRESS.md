@@ -21,7 +21,7 @@ Green gate per step: `uv sync --all-packages --dev` resolves, and once tests exi
 - [x] 6. fetcher shell: ytdlp_adapter, config, exit_codes, cli skeleton, main shim + mocked tests.
 - [x] 7. fetcher pipeline: transcode (FFmpeg), downloader orchestration + DB + threading + tests.
 - [x] 8. tagger identify: identify + resolvers protocol + Heuristic/Embedded + tests.
-- [ ] 9. tagger tag: tags (mutagen) + tag subcommand + tests (generated FLAC).
+- [x] 9. tagger tag: tags (mutagen) + tag subcommand + tests (generated FLAC).
 - [ ] 10. tagger review: review interactive + review/dump/clear subcommands + tests.
 - [ ] 11. Configs + container: etc/ configs, systemd units, Dockerfile + local buildx smoke.
 - [ ] 12. CI: ci.yml + release.yml (multi-arch GHCR).
@@ -29,21 +29,23 @@ Green gate per step: `uv sync --all-packages --dev` resolves, and once tests exi
 - [ ] 14. Scaffold: dedup/README.md (future dir-comparator spec).
 
 ## RESUME HERE
-**Next: step 9 — tagger tags (mutagen) + `tag` subcommand.**
-Verify current state: `cd ~/repo/flacifly && make test` (should pass: 67 tests).
-Build:
-- `tagger/src/tagger/tags.py`: `read_tags(flac_path) -> dict`, `write_tags(flac_path, artist, title,
-  date=None, dry_run=False)` via `mutagen.flac.FLAC` (Vorbis comments ARTIST/TITLE/DATE/ALBUM/GENRE);
-  low-level I/O only. mutagen import may need lazy import; mypy override already set.
-- `tagger/src/tagger/tagging.py` (or in cli): the `tag` operation — iterate the FLAC files under
-  `cfg.path`, for each find its DB track (by flac_path) to get embedded_json + raw_title, build
-  TrackContext, `best_guess`; if `confidence >= cfg.confidence_threshold` write tags + set status TAGGED;
-  else `db.enqueue_review`. `--dry-run` aware.
-- `tagger/src/tagger/cli.py` (subcommand style like manga editor): subparsers tag/review/dump/clear;
-  `_add_logging_args`; `main.py` shim. Step 9 implements `tag` + `dump`; step 10 implements `review` +
-  `clear` and interactive flow.
-Tests: `tagger/tests/test_tags.py` using a REAL generated FLAC fixture (mutagen can create one: write a
-minimal FLAC — see conftest factory `make_flac`). Assert write→read round-trip, dry-run no-op.
-NOTE: to match a FLAC file to its DB row, fetcher stored `flac_path`. Add `core.db.get_track_by_flac_path`
-(new helper) OR query in tagger. Prefer adding the helper to core.db for reuse. embedded_json is JSON in
-the `tracks` row; parse with json.loads for the EmbeddedResolver.
+**Next: step 10 — tagger review (interactive) + `review`/`clear` subcommands.**
+Verify current state: `cd ~/repo/flacifly && make test` (should pass: 80 tests).
+IMPORTANT pytest gotcha (already handled): test module basenames must be UNIQUE across packages
+(no __init__.py in tests dirs, default prepend import mode). We renamed to test_fetch_cli.py /
+test_tag_cli.py. Do NOT add a plain `test_cli.py` — and importlib mode is NOT usable (the repo-level
+`tagger/` dir shadows the installed package).
+Build step 10:
+- `tagger/src/tagger/review.py`: `review_pending(cfg, prompt=input, out=print) -> int`. Loop
+  `db.pending_reviews`; for each, join its track (`db.get_track`) to get the FLAC path + raw_title;
+  show raw vs guessed artist/title; prompt accept (Enter/y) / edit (type new "Artist - Title") / skip (s).
+  On accept/edit: `tags.write_tags` + `db.resolve_review(decision=...)` + `db.set_status(TAGGED)`.
+  On skip: `db.resolve_review(decision=SKIPPED)`. `prompt`/`out` injected for testing (feed a list of
+  inputs). Honour `cfg.dry_run`.
+- `tagger/src/tagger/tagging.py`: add `clear_directory(cfg)` — remove managed tags (mutagen delete).
+  Add `tags.clear_tags(flac, dry_run)`.
+- `tagger/src/tagger/cli.py`: add `review` subparser (path optional? uses --db + path for FLAC root) and
+  `clear` subparser (path + --dry-run). Wire into main().
+Tests: `tagger/tests/test_review.py` (feed prompt inputs: accept/edit/skip → assert tags written +
+review resolved + status). Extend test_tag_cli for review/clear dispatch.
+Then: step 11 configs+Dockerfile, step 12 CI, step 13 integration/polish, step 14 dedup scaffold.
