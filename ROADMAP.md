@@ -30,8 +30,8 @@ At-a-glance backlog. `[x]` done · `[ ]` open. IDs group by area.
 
 ## Container / CI / Ops (O)
 - [x] O1  Dockerfile (`python:3.12-slim` + ffmpeg), non-root, volumes, safe default CMD.
-- [ ] O2  `ci.yml`: lint (`|| true`) + strict mypy + test + coverage.
-- [ ] O3  `release.yml`: buildx multi-arch (amd64 + arm64) → GHCR.
+- [x] O2  `ci.yml`: lint (`|| true`) + strict mypy + test + coverage.
+- [x] O3  `release.yml`: buildx multi-arch (amd64 + arm64) → GHCR.
 - [x] O4  `etc/systemd/flacifly.{service,timer}` oneshot + timer for the Pi.
 - [x] O5  `etc/targets.conf` + `etc/ytdlp.conf` examples.
 

@@ -24,26 +24,21 @@ Green gate per step: `uv sync --all-packages --dev` resolves, and once tests exi
 - [x] 9. tagger tag: tags (mutagen) + tag subcommand + tests (generated FLAC).
 - [x] 10. tagger review: review interactive + review/dump/clear subcommands + tests.
 - [x] 11. Configs + container: etc/ configs, systemd units, Dockerfile + local podman build smoke.
-- [ ] 12. CI: ci.yml + release.yml (multi-arch GHCR).
+- [x] 12. CI: ci.yml + release.yml (multi-arch GHCR).
 - [ ] 13. Integration + polish: @pytest.mark.integration smoke tests, finalize README.
 - [ ] 14. Scaffold: dedup/README.md (future dir-comparator spec).
 
 ## RESUME HERE
-**Next: step 12 — CI (.github/workflows/ci.yml + release.yml multi-arch → GHCR).**
-Verify current state: `cd ~/repo/flacifly && make test` (88 tests). Container: `podman build -t
-flacifly:test .` succeeds (docker is NOT installed here — use podman locally; CI uses docker).
-Build step 12:
-- `.github/workflows/ci.yml`: adapt manga_manager's (astral-sh/setup-uv@v7 pinned 0.9.23,
-  actions/checkout@v6). lint job: ruff/black/isort with `|| true`, then strict
-  `uv run mypy -p core -p fetcher -p tagger` (can fail). test job: `uv sync --locked --all-packages
-  --dev` then `uv run pytest --cov=core --cov=fetcher --cov=tagger --cov-report=html . -q`, upload
-  htmlcov. NOTE: `uv.lock` must be committed for `--locked` (run `uv lock` and commit it — check it isn't
-  gitignored; .gitignore currently ignores *.db but NOT uv.lock, good).
-- `.github/workflows/release.yml`: docker/setup-qemu-action + docker/setup-buildx-action +
-  docker/login-action (GHCR, `${{ github.actor }}` / `secrets.GITHUB_TOKEN`) +
-  docker/build-push-action with `platforms: linux/amd64,linux/arm64`, push to
-  `ghcr.io/burgesq/flacifly`, tags on git tags + `latest` on main. `permissions: packages: write`.
-Then step 13 integration/polish (@pytest.mark.integration live smoke, finalize README), step 14
-dedup/README.md scaffold.
-KNOWN: `docker buildx build --platform linux/amd64,linux/arm64 .` (plan verification) needs docker+QEMU;
-locally only podman/amd64 was smoke-tested — arm64 is verified in CI on first tag push.
+**Next: step 13 — integration tests + polish.**
+Verify current state: `cd ~/repo/flacifly && make test` (88 tests) + `uv sync --locked` OK.
+Build step 13:
+- Add a few `@pytest.mark.integration` tests (opt-in; excluded from default run via `-m "not
+  integration"`? currently they'd run — guard them so they SKIP without network/ffmpeg, or mark and let
+  CI skip). Suggested: a fetch smoke that, IF network+ffmpeg available, downloads one very short public
+  YouTube URL to a tmp dir and asserts a FLAC + original exist + DB row. Use pytest.importorskip / a
+  shutil.which('ffmpeg') skip guard so it never fails in CI without ffmpeg.
+- Consider adding `-m "not integration"` note to README / Makefile `test` (keep default `make test` fast).
+- Finalize README usage section (already drafted) — verify the example commands match the real CLI flags.
+Then step 14: `dedup/README.md` scaffold (future dir-comparator spec) — the last step.
+NOTE (arm64): multi-arch build is verified in CI (release.yml) on first push to main / tag; locally only
+podman/amd64 was smoke-tested (docker+QEMU not installed here).
