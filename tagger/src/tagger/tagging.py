@@ -18,7 +18,7 @@ from core.types_ import ReviewRow, TrackStatus
 
 from .config import TagConfig
 from .resolvers import best_guess
-from .tags import read_tags, write_tags
+from .tags import clear_tags, read_tags, write_tags
 from .types_ import Guess, TrackContext
 
 logger = logging.getLogger(__name__)
@@ -123,4 +123,13 @@ def dump_directory(cfg: TagConfig) -> int:
     for flac in files:
         tags = read_tags(flac)
         print(f"{flac}: {tags}")
+    return len(files)
+
+
+def clear_directory(cfg: TagConfig) -> int:
+    """Remove managed tags from every FLAC under ``cfg.path``. Returns the file count."""
+    files = iter_flac_files(cfg.path)
+    for flac in files:
+        clear_tags(flac, dry_run=cfg.dry_run)
+    logger.info("cleared tags on %d file(s)", len(files))
     return len(files)

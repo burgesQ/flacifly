@@ -24,8 +24,8 @@ At-a-glance backlog. `[x]` done · `[ ]` open. IDs group by area.
 - [x] T2  Resolver protocol + `HeuristicResolver` + `EmbeddedResolver`.
 - [x] T3  `tags.py`: read/write FLAC Vorbis comments via mutagen (`--dry-run` aware).
 - [x] T4  `tag` subcommand: auto-tag confident, queue uncertain.
-- [ ] T5  `review` subcommand: interactive accept/edit/skip over the queue.
-- [ ] T6  `dump` / `clear` subcommands.
+- [x] T5  `review` subcommand: interactive accept/edit/skip over the queue.
+- [x] T6  `dump` / `clear` subcommands.
 - [ ] T7  `AcoustIDResolver` (chromaprint + MusicBrainz) via the plugin slot. *(future)*
 
 ## Container / CI / Ops (O)

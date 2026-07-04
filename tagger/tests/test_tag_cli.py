@@ -6,7 +6,7 @@ from pathlib import Path
 
 from tagger import cli
 from tagger.exit_codes import CLI_ERROR, SUCCESS
-from tagger.tags import read_tags
+from tagger.tags import read_tags, write_tags
 
 
 def test_no_command_returns_cli_error(capsys):
@@ -42,3 +42,22 @@ def test_dump_prints_tags(make_flac, tmp_path, capsys):
     assert rc == SUCCESS
     out = capsys.readouterr().out
     assert "song.flac" in out
+
+
+def test_clear_removes_tags(make_flac, tmp_path):
+    flac: Path = make_flac("song.flac", subdir="music")
+    write_tags(flac, artist="A", title="B")
+    assert read_tags(flac)  # non-empty
+    rc = cli.main(
+        ["clear", str(tmp_path / "music"), "--db", str(tmp_path / "db.sqlite")]
+    )
+    assert rc == SUCCESS
+    assert read_tags(flac) == {}
+
+
+def test_review_empty_queue_dispatches(make_flac, tmp_path):
+    make_flac("song.flac", subdir="music")
+    rc = cli.main(
+        ["review", str(tmp_path / "music"), "--db", str(tmp_path / "db.sqlite")]
+    )
+    assert rc == SUCCESS

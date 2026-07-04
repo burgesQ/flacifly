@@ -10,7 +10,8 @@ from core.logging import setup_logging
 
 from .config import TagConfig
 from .exit_codes import CLI_ERROR, SUCCESS
-from .tagging import dump_directory, tag_directory
+from .review import review_pending
+from .tagging import clear_directory, dump_directory, tag_directory
 
 logger = logging.getLogger("tagger")
 
@@ -55,6 +56,20 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_common_args(dump_p)
     _add_logging_args(dump_p)
 
+    review_p = sub.add_parser("review", help="interactively resolve uncertain tracks")
+    _add_common_args(review_p)
+    review_p.add_argument(
+        "--dry-run", action="store_true", help="simulate; write nothing"
+    )
+    _add_logging_args(review_p)
+
+    clear_p = sub.add_parser("clear", help="remove managed tags from FLAC files")
+    _add_common_args(clear_p)
+    clear_p.add_argument(
+        "--dry-run", action="store_true", help="simulate; write nothing"
+    )
+    _add_logging_args(clear_p)
+
     return parser
 
 
@@ -95,6 +110,11 @@ def main(argv=None) -> int:
         return SUCCESS
     if args.command == "dump":
         dump_directory(cfg)
+        return SUCCESS
+    if args.command == "review":
+        return review_pending(cfg)
+    if args.command == "clear":
+        clear_directory(cfg)
         return SUCCESS
 
     return CLI_ERROR

@@ -66,3 +66,19 @@ def write_tags(
         audio[key] = [value]
     audio.save()
     logger.debug("tagged %s with %s", flac_path.name, updates)
+
+
+def clear_tags(flac_path: Path, *, dry_run: bool = False) -> None:
+    """Remove all managed tags from a FLAC file."""
+    if dry_run:
+        logger.info("[DRY RUN] would clear tags on %s", flac_path.name)
+        return
+
+    from mutagen.flac import FLAC
+
+    audio = FLAC(str(flac_path))
+    for field in FIELDS:
+        if field in audio:
+            del audio[field]
+    audio.save()
+    logger.debug("cleared tags on %s", flac_path.name)
