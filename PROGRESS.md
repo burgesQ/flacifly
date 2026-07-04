@@ -26,16 +26,15 @@ Green gate per step: `uv sync --all-packages --dev` resolves, and once tests exi
 - [x] 11. Configs + container: etc/ configs, systemd units, Dockerfile + local podman build smoke.
 - [x] 12. CI: ci.yml + release.yml (multi-arch GHCR).
 - [x] 13. Integration + polish: @pytest.mark.integration smoke tests, finalize README.
-- [ ] 14. Scaffold: dedup/README.md (future dir-comparator spec).
+- [x] 14. Scaffold: dedup/README.md (future dir-comparator spec).
 
-## RESUME HERE
-**Next: step 14 — dedup/ scaffold (FINAL step).**
-Verify current state: `cd ~/repo/flacifly && make test` (89 passed, 1 skipped — the live fetch is
-gated by FLACIFLY_INTEGRATION=1; the real-ffmpeg transcode test runs when ffmpeg is present).
-Build step 14 (docs-only scaffold, no code, no new tests):
-- `dedup/README.md`: spec for the future parallel dir-comparator (out of scope for v1). Describe the job:
-  scan the user's ~4-5 legacy download dirs in parallel, group matching tracks (normalized title /
-  fingerprint), keep the "best" (bitrate/format/size), record uncertain matches in `core.db` for
-  `flacifly-tag review`. Reference ROADMAP Z1. Note it will become a 4th workspace member later.
-After step 14: project COMPLETE. Optionally run full `make lint && make type-check && make test` and do a
-final `podman build` smoke. All 14 build steps done.
+## DONE — all 14 build steps complete ✅
+v1 is fully built and green: `make test` → 89 passed, 1 skipped; `make lint` + `make type-check` clean;
+`podman build` succeeds and the container runs (safe no-op default + working CLIs).
+
+Remaining open items (deliberately deferred, tracked in ROADMAP):
+- T7 AcoustID/MusicBrainz resolver (reserved plugin slot).
+- Z1 dedup/ dir-comparator (scaffolded in dedup/README.md).
+- Z2 --watch daemon mode; Z3 HTTP API/front-end; Z4 CI matrix + reviewdog.
+- arm64 image is verified in CI (release.yml) on first push to main / a `v*` tag; locally only
+  podman/amd64 was smoke-tested (docker + QEMU not installed in the dev env).
