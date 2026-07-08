@@ -83,6 +83,12 @@ write command to preview without touching files. The shared SQLite DB (default
 `~/.local/share/flacifly/flacifly.db`, override with `--db`) handles dedup and the review queue across
 runs.
 
+> **Avoiding YouTube rate limits.** High concurrency with no delay (e.g. `--nb-worker 8`) trips
+> YouTube's rate limiter (`This content isn't available, try again later`). Prefer low parallelism plus a
+> per-request sleep: `--nb-worker 1 --sleep-requests 1`. flacifly warns when you combine high
+> `--nb-worker` with no `--sleep-requests`. Persistent `Sign in to confirm you're not a bot` errors mean
+> you need valid `--cookies` (Netscape format).
+
 ### `etc/targets.conf`
 
 One `Name  URL` per line; the name becomes a subdirectory under `--download-root`. Lines starting with

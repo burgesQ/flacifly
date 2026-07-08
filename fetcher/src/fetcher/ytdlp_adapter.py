@@ -32,12 +32,14 @@ def build_ydl_opts(
     archive_path: Optional[Path] = None,
     cookiefile: Optional[Path] = None,
     quiet: bool = True,
+    sleep_requests: float = 0.0,
     extra: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Build the yt-dlp options dict for best-audio download (keeps the source).
 
     Mirrors the old ``youtube-dl.conf``: best audio, per-dir download archive,
-    playlist enabled, thumbnail written, geo-bypass, ignore errors.
+    playlist enabled, thumbnail written, geo-bypass, ignore errors. ``sleep_requests``
+    (seconds) throttles HTTP requests to avoid YouTube rate-limiting.
     """
     opts: dict[str, Any] = {
         "format": "bestaudio/best",
@@ -55,6 +57,9 @@ def build_ydl_opts(
         opts["download_archive"] = str(archive_path)
     if cookiefile is not None:
         opts["cookiefile"] = str(cookiefile)
+    if sleep_requests > 0:
+        # Equivalent to yt-dlp's `-t sleep` recommendation on rate-limit errors.
+        opts["sleep_interval_requests"] = sleep_requests
     if extra:
         opts.update(extra)
     return opts

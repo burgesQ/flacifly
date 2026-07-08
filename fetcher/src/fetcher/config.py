@@ -28,3 +28,4 @@ class FetchConfig(BaseConfig):
     url: Optional[str] = None
     keep_original: bool = True
     flac_compression: int = 8
+    sleep_requests: float = 0.0

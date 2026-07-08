@@ -61,6 +61,12 @@ def _build_parser() -> argparse.ArgumentParser:
         default=1,
         help="number of parallel workers (default 1)",
     )
+    p.add_argument(
+        "--sleep-requests",
+        type=float,
+        default=0.0,
+        help="seconds to sleep between HTTP requests (avoids YouTube rate-limiting)",
+    )
     p.add_argument("--db", type=Path, default=None, help="SQLite DB path override")
     p.add_argument("--dry-run", action="store_true", help="simulate; download nothing")
     p.add_argument("--verbose", action="store_true", help="verbose logging")
@@ -90,12 +96,20 @@ def _build_config(args: argparse.Namespace) -> FetchConfig:
         "keep_original": not args.no_keep_original,
         "flac_compression": args.flac_compression,
         "nb_worker": args.nb_worker,
+        "sleep_requests": args.sleep_requests,
         "dry_run": args.dry_run,
         "verbose": args.verbose,
         "loglevel": args.loglevel,
     }
     if args.db is not None:
         kwargs["db_path"] = args.db
+
+    if args.nb_worker > 2 and args.sleep_requests == 0.0 and args.mode != MODE_OFF:
+        logger.warning(
+            "high --nb-worker (%d) with no --sleep-requests may trip YouTube "
+            "rate-limiting; consider --nb-worker 1-2 --sleep-requests 1",
+            args.nb_worker,
+        )
     return FetchConfig(**kwargs)
 
 

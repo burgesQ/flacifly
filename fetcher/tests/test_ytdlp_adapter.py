@@ -46,6 +46,12 @@ def test_build_opts_keeps_source_no_audio_extraction(tmp_path: Path):
     assert "FFmpegMetadata" in keys
 
 
+def test_build_opts_sleep_requests(tmp_path: Path):
+    assert "sleep_interval_requests" not in ya.build_ydl_opts(tmp_path)
+    opts = ya.build_ydl_opts(tmp_path, sleep_requests=1.5)
+    assert opts["sleep_interval_requests"] == 1.5
+
+
 def test_source_of_normalisation():
     assert ya._source_of({"extractor_key": "Youtube"}) == "youtube"
     assert ya._source_of({"ie_key": "SoundcloudPlaylist"}) == "soundcloud"

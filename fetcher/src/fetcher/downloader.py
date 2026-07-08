@@ -209,6 +209,7 @@ def _process_target(
         archive_path=dl_dir / ".downloaded",
         cookiefile=cfg.cookies,
         quiet=not cfg.verbose,
+        sleep_requests=cfg.sleep_requests,
     )
     entries = probe(_normalize_url(target.url), opts, ydl_factory)
     logger.info("target %s: %d ent/track(s)", target.name, len(entries))
