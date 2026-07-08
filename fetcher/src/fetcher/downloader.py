@@ -49,6 +49,29 @@ def read_targets(path: Path) -> list[FetchTarget]:
     return targets
 
 
+def _cookies_ok(path: Path) -> bool:
+    """Validate a cookies file up front (Netscape format), with actionable errors."""
+    from http.cookiejar import LoadError, MozillaCookieJar
+
+    if not path.exists():
+        logger.error("cookies file not found: %s", path)
+        return False
+    try:
+        MozillaCookieJar(str(path)).load()
+    except LoadError as e:
+        logger.error(
+            "invalid cookies file %s: %s — export it in Netscape format "
+            "(e.g. a 'Get cookies.txt' browser extension)",
+            path,
+            e,
+        )
+        return False
+    except OSError as e:
+        logger.error("cannot read cookies file %s: %s", path, e)
+        return False
+    return True
+
+
 def _url_source(url: str) -> str:
     """Coarse source label from a URL, for mode gating before probing."""
     return "soundcloud" if "soundcloud" in url.lower() else "youtube"
@@ -192,6 +215,9 @@ def run(
     if cfg.mode == MODE_OFF:
         logger.info("mode=off — nothing to do (safe default)")
         return SUCCESS
+
+    if cfg.cookies is not None and not _cookies_ok(cfg.cookies):
+        return DOWNLOAD_ERROR
 
     targets = _resolve_targets(cfg)
     if not targets:

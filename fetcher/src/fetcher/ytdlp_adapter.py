@@ -101,11 +101,18 @@ def probe(
     opts: dict[str, Any],
     ydl_factory: YdlFactory = _default_ydl_factory,
 ) -> list[EntryInfo]:
-    """Extract metadata for ``url`` without downloading; return leaf entries."""
+    """Extract metadata for ``url`` without downloading; return leaf entries.
+
+    Never raises: a hard error (bad cookies, network, geo) is logged and yields ``[]``.
+    """
     probe_opts = dict(opts)
     probe_opts["extract_flat"] = "in_playlist"
-    with ydl_factory(probe_opts) as ydl:
-        info = ydl.extract_info(url, download=False)
+    try:
+        with ydl_factory(probe_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+    except Exception as e:  # noqa: BLE001 - one bad target must not abort the batch
+        logger.error("probe failed for %s: %s", url, e)
+        return []
     return [_to_entry_info(e) for e in _iter_entries(info)]
 
 
@@ -121,13 +128,21 @@ def download_entry(
     opts: dict[str, Any],
     ydl_factory: YdlFactory = _default_ydl_factory,
 ) -> Optional[DownloadedEntry]:
-    """Download a single entry URL; return its result or None on failure."""
-    with ydl_factory(opts) as ydl:
-        info = ydl.extract_info(webpage_url, download=True)
-        if not info:
-            logger.error("no info returned for %s", webpage_url)
-            return None
-        # A single-video URL returns a leaf; be defensive about playlist wrapping.
-        leaf = next(_iter_entries(info), info)
-        filepath = _entry_filepath(ydl, leaf)
+    """Download a single entry URL; return its result or None on failure.
+
+    Never raises: a hard error (bad cookies, network, unavailable format) is logged
+    and yields ``None`` so the batch continues.
+    """
+    try:
+        with ydl_factory(opts) as ydl:
+            info = ydl.extract_info(webpage_url, download=True)
+            if not info:
+                logger.error("no info returned for %s", webpage_url)
+                return None
+            # A single-video URL returns a leaf; be defensive about playlist wrapping.
+            leaf = next(_iter_entries(info), info)
+            filepath = _entry_filepath(ydl, leaf)
+    except Exception as e:  # noqa: BLE001 - one bad entry must not abort the batch
+        logger.error("download failed for %s: %s", webpage_url, e)
+        return None
     return DownloadedEntry(entry=_to_entry_info(leaf), filepath=filepath, info=leaf)

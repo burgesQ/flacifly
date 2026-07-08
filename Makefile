@@ -27,3 +27,15 @@ lint-fix: ## Apply ruff, black, and isort auto-fixes. //lint
 .PHONY: type-check
 type-check: ## Run mypy on all packages (strict). //lint
 	uv run mypy -p core -p fetcher -p tagger
+
+# Container engine: prefer docker, fall back to podman (override with OCI=...).
+OCI ?= $(shell command -v docker >/dev/null 2>&1 && echo docker || echo podman)
+IMAGE ?= flacifly:latest
+
+.PHONY: docker-build
+docker-build: ## Build the OCI image locally (OCI=docker|podman, IMAGE=...). //container
+	$(OCI) build -t $(IMAGE) .
+
+.PHONY: docker-buildx
+docker-buildx: ## Build the multi-arch image (amd64+arm64) via docker buildx. //container
+	docker buildx build --platform linux/amd64,linux/arm64 -t $(IMAGE) .

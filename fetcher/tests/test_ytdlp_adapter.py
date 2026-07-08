@@ -89,6 +89,30 @@ def test_download_entry_returns_filepath():
     assert calls == [("u1", True)]
 
 
+class RaisingYDL:
+    """A YoutubeDL stand-in whose extract_info always raises (e.g. bad cookies)."""
+
+    def __init__(self, opts):
+        self.opts = opts
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def extract_info(self, url, download=False):
+        raise RuntimeError("boom (e.g. CookieLoadError)")
+
+
+def test_probe_swallows_exceptions():
+    assert ya.probe("u", {}, ydl_factory=RaisingYDL) == []
+
+
+def test_download_entry_swallows_exceptions():
+    assert ya.download_entry("u", {}, ydl_factory=RaisingYDL) is None
+
+
 def test_download_entry_uses_requested_downloads_filepath():
     dl_info = {
         "id": "1",

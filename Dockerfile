@@ -6,10 +6,15 @@ ENV PYTHONUNBUFFERED=1 \
     XDG_DATA_HOME=/data \
     XDG_STATE_HOME=/data
 
-# ffmpeg does the FLAC transcode; ca-certificates for HTTPS.
+# ffmpeg does the FLAC transcode; curl/unzip bootstrap Deno; ca-certificates for HTTPS.
 RUN apt-get update \
- && apt-get install --no-install-recommends -y ffmpeg ca-certificates \
+ && apt-get install --no-install-recommends -y ffmpeg ca-certificates curl unzip \
  && rm -rf /var/lib/apt/lists/*
+
+# Deno: JavaScript runtime yt-dlp uses to solve YouTube's signature / n-challenge.
+# Without a JS runtime, YouTube exposes only thumbnails and every audio download fails.
+RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh \
+ && deno --version
 
 WORKDIR /app
 COPY core ./core

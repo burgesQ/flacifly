@@ -51,6 +51,20 @@ dedup/    future: parallel dir comparator (scaffold only)
 A `uv`-workspace monorepo of small `src/`-layout packages. See `CLAUDE.md` for conventions and
 `ROADMAP.md` for status.
 
+## Requirements
+
+- **FFmpeg** on `PATH` (the FLAC transcode).
+- **A JavaScript runtime — [Deno](https://deno.land) — for YouTube.** Current YouTube requires yt-dlp to
+  solve a signature / *n*-challenge in JS; without a runtime it exposes only thumbnails and **every audio
+  download fails** with `Requested format is not available`. Install it once:
+  ```console
+  $ curl -fsSL https://deno.land/install.sh | sh      # then ensure it is on PATH
+  ```
+  The container image already bundles Deno, so this only matters when running outside the container.
+- **Cookies (optional)** for age-gated/private content must be a **Netscape-format** `cookies.txt`
+  (export with a "Get cookies.txt" browser extension) — an invalid file is now rejected up front with a
+  clear message instead of aborting the run.
+
 ## Usage
 
 ```console

@@ -196,6 +196,27 @@ def test_run_threaded_processes_all_entries(tmp_path: Path):
     assert count == 5
 
 
+def test_run_invalid_cookies_fails_fast(tmp_path: Path):
+    from fetcher.exit_codes import DOWNLOAD_ERROR
+
+    bad = tmp_path / "cookies.txt"
+    bad.write_text("this is not a netscape cookies file\n")
+    cfg = _cfg(tmp_path, cookies=bad)
+    factory = FakeFactory({"entries": []}, {}, tmp_path)
+
+    rc = dl.run(cfg, now="now", ydl_factory=factory, runner=_fake_runner)
+    assert rc == DOWNLOAD_ERROR
+    assert factory.downloaded == []  # never got to processing
+
+
+def test_run_missing_cookies_fails_fast(tmp_path: Path):
+    from fetcher.exit_codes import DOWNLOAD_ERROR
+
+    cfg = _cfg(tmp_path, cookies=tmp_path / "nope.txt")
+    rc = dl.run(cfg, now="now", ydl_factory=FakeFactory({"entries": []}, {}, tmp_path))
+    assert rc == DOWNLOAD_ERROR
+
+
 def test_run_dry_run_downloads_nothing(tmp_path: Path):
     cfg = _cfg(tmp_path, dry_run=True)
     probe_info = {
