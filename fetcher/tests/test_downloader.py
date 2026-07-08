@@ -70,6 +70,34 @@ def test_read_targets(tmp_path: Path):
     assert targets[0].url == "https://youtube.com/playlist?list=A"
 
 
+def test_normalize_uploads_playlist_to_channel_videos():
+    # Classic uploads playlist (UU + 22 chars) → channel /videos tab.
+    assert (
+        dl._normalize_url(
+            "https://www.youtube.com/playlist?list=UUC7eKMxcVk1LZwzJlBdsVuQ"
+        )
+        == "https://www.youtube.com/channel/UCC7eKMxcVk1LZwzJlBdsVuQ/videos"
+    )
+    # Works when list= is not the last query param.
+    assert (
+        dl._normalize_url(
+            "https://www.youtube.com/watch?v=x&list=UUC7eKMxcVk1LZwzJlBdsVuQ&index=1"
+        )
+        == "https://www.youtube.com/channel/UCC7eKMxcVk1LZwzJlBdsVuQ/videos"
+    )
+
+
+def test_normalize_leaves_other_urls_untouched():
+    for url in [
+        "https://www.youtube.com/playlist?list=PLabcdefghijklmnopqrstuv",  # regular playlist
+        "https://www.youtube.com/playlist?list=LLabcdefghijklmnopqrstuv",  # liked
+        "https://www.youtube.com/playlist?list=UULFabcdefghijklmnopqrstuv",  # videos-only variant
+        "https://soundcloud.com/x/sets/y",
+        "https://www.youtube.com/watch?v=RZxRG1l3SwM",
+    ]:
+        assert dl._normalize_url(url) == url
+
+
 def test_url_source_and_mode_gating():
     assert dl._url_source("https://soundcloud.com/x") == "soundcloud"
     assert dl._url_source("https://music.youtube.com/x") == "youtube"

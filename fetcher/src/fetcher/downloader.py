@@ -11,6 +11,7 @@ from __future__ import annotations
 import concurrent.futures
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
@@ -70,6 +71,23 @@ def _cookies_ok(path: Path) -> bool:
         logger.error("cannot read cookies file %s: %s", path, e)
         return False
     return True
+
+
+# A YouTube "uploads" playlist (list=UU + 22-char channel suffix) only serves 100
+# items via the playlist endpoint; the channel /videos tab paginates fully. Match the
+# classic UU id exactly (22 chars) so UULF/UUSH/UUPS variants are left untouched.
+_UPLOADS_RE = re.compile(r"[?&]list=UU([0-9A-Za-z_-]{22})(?=&|$)")
+
+
+def _normalize_url(url: str) -> str:
+    """Rewrite a YouTube uploads-playlist URL to the channel videos tab (full list)."""
+    m = _UPLOADS_RE.search(url)
+    if not m:
+        return url
+    channel = "UC" + m.group(1)
+    rewritten = f"https://www.youtube.com/channel/{channel}/videos"
+    logger.info("uploads playlist → channel videos tab (full list): %s", rewritten)
+    return rewritten
 
 
 def _url_source(url: str) -> str:
@@ -192,7 +210,7 @@ def _process_target(
         cookiefile=cfg.cookies,
         quiet=not cfg.verbose,
     )
-    entries = probe(target.url, opts, ydl_factory)
+    entries = probe(_normalize_url(target.url), opts, ydl_factory)
     logger.info("target %s: %d ent/track(s)", target.name, len(entries))
 
     def work(entry: EntryInfo) -> int:

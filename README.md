@@ -93,6 +93,9 @@ YouTube      https://www.youtube.com/playlist?list=LLxxxxxxxxxxxx
 SoundCloud   https://soundcloud.com/some-artist/sets/some-set
 ```
 
+> A YouTube channel **uploads** playlist (`list=UU…`) only serves 100 items via the playlist endpoint,
+> so flacifly transparently rewrites it to the channel's `/videos` tab to enumerate the full catalogue.
+
 ## Run on a Raspberry Pi (container + systemd timer)
 
 The multi-arch image is published to `ghcr.io/burgesQ/flacifly` by CI. Pull it, or build locally:
